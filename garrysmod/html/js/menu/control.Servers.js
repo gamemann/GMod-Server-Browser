@@ -245,7 +245,7 @@ function FinishedServeres( type )
 	var toJson = JSON.stringify(stuffz);
 	var toJsonGFL = JSON.stringify(gfl);
 	
-	post('http://192.168.11.50/miniprojects/gmodbrowser/index.php', {global: toJson, GFL: toJsonGFL, resultid: id});
+	post('http://g.gflclan.com/gsb/index.php', {global: toJson, GFL: toJsonGFL, resultid: id});
 	
 	Scope.Refreshing[type] = "false";
 	UpdateDigest( Scope, 50 );

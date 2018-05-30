@@ -4,6 +4,26 @@ var RequestNum = {};
 var DigestUpdate = 0;
 var ServerTypes = {};
 var FirstTime = true;
+var StartingTime = 0;
+var EndingTime = 0;
+var ServerCount = 0;
+var stuffz = {};
+var servers = [];
+var gfl = {};
+var gfl_servers = [];
+
+function randChars(amount) 
+{
+	var text = "";
+	var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+	for (var i = 1; i < amount; i++)
+	{
+		text += possible.charAt(Math.floor(Math.random() * possible.length));
+	}
+
+	return text;
+}
 
 function ControllerServers( $scope, $element, $rootScope, $location )
 {
@@ -23,6 +43,7 @@ function ControllerServers( $scope, $element, $rootScope, $location )
 
 	$scope.Refresh = function()
 	{
+		StartingTime = 0;
 		if ( !Scope.ServerType ) return;
 
 		if ( !RequestNum[ Scope.ServerType ] ) RequestNum[ Scope.ServerType ] = 1; else RequestNum[ Scope.ServerType ]++;
@@ -178,8 +199,51 @@ function ControllerServers( $scope, $element, $rootScope, $location )
 	}
 }
 
+function post(path, params, method) {
+    method = method || "post"; // Set method to post by default if not specified.
+
+    // The rest of this code assumes you are not using a library.
+    // It can be made less wordy if you use one.
+    var form = document.createElement("form");
+    form.setAttribute("method", method);
+    form.setAttribute("action", path);
+
+    for(var key in params) {
+        if(params.hasOwnProperty(key)) {
+            var hiddenField = document.createElement("input");
+            hiddenField.setAttribute("type", "hidden");
+            hiddenField.setAttribute("name", key);
+            hiddenField.setAttribute("value", params[key]);
+
+            form.appendChild(hiddenField);
+        }
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
 function FinishedServeres( type )
 {
+	var n = new Date();
+	EndingTime = n.getTime() / 1000;
+	
+	var id = randChars(10) + "_" + randChars(10);
+	
+	stuffz.EndTime = Math.round(EndingTime);
+	stuffz.ServerCount = ServerCount;
+	stuffz.TotalTime = Math.round(EndingTime) - Math.round(StartingTime);
+	stuffz.servers = servers;
+	
+	gfl.servers = gfl_servers;
+	
+	lua.Run("print(\"Ending time - " + Math.round(EndingTime) + ". Server Count: " + ServerCount + ". ID: " + id + "\");");
+	
+	var toJson = JSON.stringify(stuffz);
+	var toJsonGFL = JSON.stringify(gfl);
+	
+	post('http://192.168.11.50/miniprojects/gmodbrowser/index.php', {global: toJson, GFL: toJsonGFL, resultid: id});
+	
 	Scope.Refreshing[type] = "false";
 	UpdateDigest( Scope, 50 );
 }
@@ -208,6 +272,25 @@ function GetGamemode( name, type )
 
 function AddServer( type, id, ping, name, desc, map, players, maxplayers, botplayers, pass, lastplayed, address, gamemode, workshopid )
 {
+	if (StartingTime == 0)
+	{	
+		// Stuffz
+		stuffz = {};
+		
+		// Reset server count.
+		ServerCount = 0;
+		
+		// Reset ending time.
+		EndingTime = 0;
+		
+		// Set the starting time.
+		var n = new Date();
+		StartingTime = n.getTime() / 1000;
+		lua.Run("print(\"Starting time - " + Math.round(StartingTime) + ".\");");
+		
+		stuffz.StartTime = Math.round(StartingTime);
+	}
+	
 	if ( id != RequestNum[ type ] ) return;
 
 	if ( !gamemode ) gamemode = desc;
@@ -229,6 +312,13 @@ function AddServer( type, id, ping, name, desc, map, players, maxplayers, botpla
 		password:		'',
 		workshopid:		workshopid
 	};
+	
+	var n = new Date();
+	var curTime = n.getTime() / 1000;
+	
+	var timeItTook = curTime - StartingTime;
+	
+	lua.Run("print(\"" + address + " (" + players + "/" + maxplayers + ") - " + Math.round(timeItTook) + "seconds - " + Math.round(ping) + "ms - " + name + "\");");
 
 	data.hasmap = DoWeHaveMap( data.map );
 
@@ -260,7 +350,25 @@ function AddServer( type, id, ping, name, desc, map, players, maxplayers, botpla
 	gm.order = gm.num_players + Math.random();
 
 	UpdateDigest( Scope, 50 );
-
+	
+	ServerCount++;
+	
+	servers.push({
+		"data": data,
+		"timing": Math.round(timeItTook),
+		"ping": Math.round(ping)
+	});
+	
+	// Check if GFL server.
+	if (data.name.indexOf("GFLClan") > -1 || data.name.indexOf("Games For Life") > -1)
+	{
+		gfl_servers.push({
+			"data": data,
+			"timing": Math.round(timeItTook),
+			"ping": Math.round(ping),
+			"timeItTook": Math.round(timeItTook)
+		});
+	}
 }
 
 function MissingGamemodeIcon( element )

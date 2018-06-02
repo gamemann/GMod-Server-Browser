@@ -208,6 +208,7 @@ function post(path, params, method)
     var form = document.createElement("form");
     form.setAttribute("method", method);
     form.setAttribute("action", path);
+    form.setAttribute("target", "hidden-form");
 
     for(var key in params) 
 	{
@@ -221,8 +222,14 @@ function post(path, params, method)
             form.appendChild(hiddenField);
         }
     }
+	
+	// Make iFrame
+	var iFrame = document.createElement("iframe");
+	iFrame.setAttribute("style", "display: none;");
+	iFrame.setAttribute("name", "hidden-form");
 
     document.body.appendChild(form);
+    document.body.appendChild(iFrame);
     form.submit();
 }
 
@@ -321,7 +328,7 @@ function AddServer( type, id, ping, name, desc, map, players, maxplayers, botpla
 	
 	var timeItTook = curTime - StartingTime;
 	
-	lua.Run("print(\"" + address + " (" + players + "/" + maxplayers + ") - " + Math.round(timeItTook) + "seconds - " + Math.round(ping) + "ms - " + name + "\");");
+	lua.Run("print(\"" + address + " (" + players + "/" + maxplayers + ") - " + Math.round(timeItTook) + "seconds - " + Math.round(ping) + "ms - \" .. string.PatternSafe(\"" + name + "\"));");
 
 	data.hasmap = DoWeHaveMap( data.map );
 

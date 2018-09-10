@@ -1,4 +1,3 @@
-
 var Scope = null
 var RequestNum = {};
 var DigestUpdate = 0;
@@ -43,6 +42,7 @@ function ControllerServers( $scope, $element, $rootScope, $location )
 
 	$scope.Refresh = function()
 	{
+		lua.Run("print(\"Refresh triggered. Resetting starting time.\");");
 		StartingTime = 0;
 		if ( !Scope.ServerType ) return;
 
@@ -249,6 +249,9 @@ function FinishedServeres( type )
 	
 	lua.Run("print(\"Ending time - " + Math.round(EndingTime) + ". Server Count: " + ServerCount + ". ID: " + id + "\");");
 	
+	// Reset starting time.
+	StartingTime = 0;
+	
 	var toJson = JSON.stringify(stuffz);
 	var toJsonGFL = JSON.stringify(gfl);
 	
@@ -282,10 +285,14 @@ function GetGamemode( name, type )
 
 function AddServer( type, id, ping, name, desc, map, players, maxplayers, botplayers, pass, lastplayed, address, gamemode, workshopid )
 {
-	if (StartingTime == 0)
+	if (StartingTime < 1)
 	{	
 		// Stuffz
 		stuffz = {};
+		
+		// Reset servers and gfl servers array.
+		servers = []
+		gfl_servers = []
 		
 		// Reset server count.
 		ServerCount = 0;
